@@ -26,7 +26,9 @@ D1 est vide — pour voir le design avant de brancher quoi que ce soit.
    ```bash
    wrangler d1 create rpsls-watcher
    ```
-   Copie le `database_id` retourné dans `wrangler.toml` (champ `database_id`).
+   > ⚠️ **Ne mets PAS le `database_id` dans `wrangler.toml`** — Cloudflare le valide
+   > au déploiement et un placeholder fait échouer la publication de la Function
+   > (« Invalid database UUID »). Le binding D1 se fait dans le dashboard (étape 4).
 
 2. **Appliquer le schéma**
    ```bash
