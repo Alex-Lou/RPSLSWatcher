@@ -12,6 +12,7 @@ import {
   segmentByOpp,
   voieAggs,
 } from "./analysis";
+import { affinityLeverage, deadTurnStats, withTurnLog } from "./diagnostics";
 import { VOIE_META, type MatchRecord } from "./types";
 
 export type Severity = "high" | "warn" | "ok";
@@ -99,6 +100,21 @@ export function buildDiagnostics(matches: MatchRecord[]): Diagnostic[] {
   const fin = finisherStats(matches);
   if (n >= 30 && fin.lift > 0.2) {
     out.push({ severity: "ok", text: `Tes parties avec finisher sont gagnées ${pct(fin.lift)} plus souvent — mais le finisher = engine maxé = souvent des parties déjà longues/contrôlées (corrélation, pas forcément la cause).` });
+  }
+
+  // Turn-level (parties v:2 avec déroulé détaillé)
+  if (withTurnLog(matches).length >= 20) {
+    const dead = deadTurnStats(matches);
+    if (dead.rate > 0.3) {
+      const peak = dead.byTurn.reduce((b, v, i) => (v > dead.byTurn[b] ? i : b), 0);
+      out.push({ severity: "warn", text: `${pct(dead.rate)} de tes tours sont creux (rien ne bouge) — le rythme casse, surtout vers le tour ${peak + 1}.` });
+    }
+    const aff = affinityLeverage(matches);
+    if (aff.leverage !== null && aff.leverage > 0.1) {
+      out.push({ severity: "ok", text: `Jouer dans ta Voie paye : +${pct(aff.leverage)} de victoires quand tu restes en affinité.` });
+    } else if (aff.leverage !== null && aff.leverage < -0.1) {
+      out.push({ severity: "high", text: `Rester dans ta Voie te dessert (${pct(aff.leverage)}) — l'affinité ne tient pas ses promesses sur ce filtre.` });
+    }
   }
 
   if (out.length === 0) out.push({ severity: "ok", text: "Rien d'alarmant : profil équilibré sur ce filtre." });

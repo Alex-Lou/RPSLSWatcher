@@ -30,9 +30,27 @@ export const VOIE_META: Record<Move, { name: string; glyph: string; cssVar: stri
   spock: { name: "Cosmos", glyph: "🖖", cssVar: "--voie-spock" },
 };
 
+/** Étiquette du SYMBOLE RPSLS (≠ nom de Voie) — pour décrire un coup posé. */
+export const MOVE_LABEL: Record<Move, string> = {
+  rock: "Pierre",
+  paper: "Feuille",
+  scissors: "Ciseaux",
+  lizard: "Lézard",
+  spock: "Spock",
+};
+
+/** Verbe RPSLS « gagnant → perdant » (vulgarisation du replay). */
+export const BEAT_VERB: Partial<Record<Move, Partial<Record<Move, string>>>> = {
+  rock: { scissors: "écrase", lizard: "écrase" },
+  paper: { rock: "enveloppe", spock: "réfute" },
+  scissors: { paper: "coupe", lizard: "décapite" },
+  lizard: { paper: "dévore", spock: "empoisonne" },
+  spock: { rock: "vaporise", scissors: "brise" },
+};
+
 /** UN enregistrement de partie (le contrat jeu → Worker → Watcher). */
 export interface MatchRecord {
-  v: 1; // schema version
+  v: 1 | 2; // 1 = résumé seul · 2 = inclut turnLog (déroulé tour par tour)
   id: string; // uuid client (clé d'idempotence à l'ingest)
   ts: number; // epoch ms — quand la partie a été jouée
   mode: Mode;
@@ -49,6 +67,74 @@ export interface MatchRecord {
   hpTrajectoryOpp: number[];
   endReason: EndReason;
   appVersion?: string; // version du jeu (cohorting), optionnel
+  turnLog?: ArenaTurnEvent[]; // [v:2] déroulé tour par tour — absent sur les parties v:1
+}
+
+/* ───────────────────── Turn-log v:2 (déroulé tour par tour) ─────────────────
+ * Produit par le recorder in-game (observationnel, Tier A+B). Permet de juger
+ * rythme, pioche, dégâts, affinité, points morts ET de rejouer une partie en
+ * langage simple. TOUT est optionnel à la lecture : une partie v:1 n'en a pas.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Issue d'une lane après combat (du point de vue « moi » = a). */
+export type LaneResult =
+  | "counterWinSelf" // ma créature contre (RPSLS) la sienne
+  | "counterWinOpp" // la sienne me contre
+  | "mirror" // même symbole → échange de coups
+  | "emptySelf" // j'ai une créature seule (frappe son héros)
+  | "emptyOpp" // il a une créature seule (frappe mon héros)
+  | "none"; // lane sans combat décisif
+
+/** Résolution d'UNE lane (Tier B). Les dégâts sont déjà attribués au héros. */
+export interface LaneOutcome {
+  lane: number; // 0..2
+  selfMove: Move | null; // symbole de ma créature (null = lane vide côté moi)
+  oppMove: Move | null;
+  result: LaneResult;
+  killSelf: boolean; // ma créature est morte ce tour
+  killOpp: boolean; // la sienne est morte
+  saved: boolean; // une sauvegarde (Esquive/Aegis/anti-taunt) a annulé un KO
+  splashToOpp: number; // surplus d'ATK d'un contre gagnant → son héros
+  splashToSelf: number;
+  directToOpp: number; // créature en lane vide → son héros (ATK pleine)
+  directToSelf: number;
+}
+
+/** Un coup posé dans le tour (sort ou invocation). */
+export interface TurnPlay {
+  kind: "summon" | "spell";
+  card: string; // CardId
+  lane?: number; // invocations : 0..2
+  move?: Move; // symbole RPSLS de l'invocation
+  affinity: boolean; // move === ma Voie ? (le levier d'affinité)
+  manaCost: number;
+}
+
+/** Un tour résolu, du point de vue du joueur (« moi » = a, « adv » = b). */
+export interface ArenaTurnEvent {
+  turn: number;
+  // — économie & rythme (moi) —
+  manaMax: number; // mana max ce tour
+  manaSpent: number; // mana réellement dépensé
+  handStart: number; // taille de main au début du planning
+  drawn: number; // cartes piochées en entrant dans ce tour
+  deckLeft: number; // cartes restantes au deck (fatigue imminente)
+  // — coups posés —
+  plays: TurnPlay[]; // moi
+  playsOpp: TurnPlay[]; // adversaire (révélés)
+  // — moteur de Voie / affinité —
+  engine: number; // valeur de ma jauge de Voie après le tour
+  engineOpp: number;
+  engineRose: boolean; // ma jauge a monté ce tour (contre d'affinité réussi)
+  finisherUnlocked: boolean; // finisher débloqué CE tour (jauge maxée)
+  // — PV —
+  hpSelf: number; // après le tour
+  hpOpp: number;
+  dHpSelf: number; // delta PV moi (négatif = subi, positif = soin)
+  dHpOpp: number;
+  deadTurn: boolean; // 0 PV bougé des deux côtés + jauges stagnantes
+  // — Tier B : résolution RPSLS par lane —
+  lanes?: LaneOutcome[];
 }
 
 /** Filtres appliqués CÔTÉ CLIENT (recalcul live). Listes vides = « tout ». */

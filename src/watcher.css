@@ -511,6 +511,318 @@ body::after {
   }
 }
 
+/* ═══════════════ Replay journal (déroulé vulgarisé, v:2) ═══════════════ */
+.wt-replay-picker {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.wt-replay-picker::-webkit-scrollbar {
+  display: none;
+}
+.wt-replay-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--stroke-faint);
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wt-replay-pick.on {
+  border-color: var(--neon-cyan);
+  color: var(--ink-bright);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--neon-cyan) 35%, transparent);
+}
+.wt-replay-pick .res.win {
+  color: var(--res-win);
+}
+.wt-replay-pick .res.loss {
+  color: var(--res-loss);
+}
+.wt-replay-pick .res.draw {
+  color: var(--res-draw);
+}
+.wt-replay-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  color: var(--ink);
+  margin: 4px 0 10px;
+}
+.wt-replay-headline .vs {
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.wt-replay-headline .res {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.wt-replay-headline .res.win {
+  color: var(--res-win);
+}
+.wt-replay-headline .res.loss {
+  color: var(--res-loss);
+}
+.wt-replay-headline .res.draw {
+  color: var(--res-draw);
+}
+.wt-replay-headline .meta {
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin-left: auto;
+}
+.wt-replay-stage {
+  background: var(--bg-2);
+  border: 1px solid var(--stroke-faint);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: 160px;
+}
+.wt-replay-turnno {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px color-mix(in oklab, var(--neon-cyan) 50%, transparent);
+}
+.wt-replay-hp {
+  display: flex;
+  gap: 18px;
+  font-family: var(--font-num);
+  font-size: 13px;
+  color: var(--ink);
+  margin: 4px 0 8px;
+}
+.wt-replay-hp b {
+  color: var(--ink-bright);
+}
+.wt-replay-delta {
+  font-size: 11px;
+  margin-left: 2px;
+}
+.wt-replay-delta.up {
+  color: var(--res-win);
+}
+.wt-replay-delta.down {
+  color: var(--res-loss);
+}
+.wt-replay-delta.zero {
+  color: var(--ink-dim);
+}
+.wt-replay-line {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 2px 0;
+}
+.wt-replay-line em {
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.wt-replay-line.win {
+  color: #d2ffe9;
+}
+.wt-replay-line.loss {
+  color: #ffd9e0;
+}
+.wt-replay-line.mute {
+  color: var(--ink-dim);
+}
+.wt-replay-line.eng b {
+  font-family: var(--font-num);
+  color: var(--neon-lime);
+}
+.wt-replay-line.eng .rise {
+  color: var(--neon-lime);
+}
+.wt-replay-line.fin {
+  color: var(--neon-amber);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px color-mix(in oklab, var(--neon-amber) 50%, transparent);
+  margin-top: 2px;
+}
+.wt-replay-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.wt-replay-nav button {
+  font-size: 14px;
+  background: var(--bg-3);
+  color: var(--ink);
+  border: 1px solid var(--stroke-faint);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.wt-replay-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.wt-replay-nav input[type="range"] {
+  flex: 1;
+  accent-color: var(--neon-cyan);
+}
+.wt-replay-count {
+  font-family: var(--font-num);
+  font-size: 12px;
+  color: var(--ink-dim);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ═══════════════ Diagnostics experts (turnLog) ═══════════════ */
+.wt-diag-note {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-bottom: 4px;
+}
+.wt-diag-note b {
+  color: var(--neon-cyan);
+}
+.wt-diag-block {
+  padding: 10px 0;
+  border-top: 1px solid var(--stroke-faint);
+}
+.wt-diag-block:first-of-type {
+  border-top: 0;
+}
+.wt-diag-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.wt-diag-big {
+  font-family: var(--font-num);
+  font-size: 30px;
+  line-height: 1.05;
+}
+.wt-diag-big span {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.wt-diag-sub {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  line-height: 1.45;
+  margin-top: 2px;
+}
+.wt-diag-sub b {
+  color: var(--ink-bright);
+}
+.wt-diag-duo {
+  display: flex;
+  gap: 18px;
+  margin: 4px 0 6px;
+}
+.wt-diag-duo > div {
+  flex: 1;
+}
+.wt-diag-bars {
+  margin-top: 6px;
+}
+.wt-diag-barline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.wt-diag-barline .lbl {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  width: 76px;
+}
+.wt-diag-barline .val {
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-bright);
+  width: 28px;
+  text-align: right;
+}
+.wt-meter {
+  height: 7px;
+  flex: 1;
+  background: var(--bg-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.wt-meter-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.wt-diag-verdict {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--ink-dim);
+  background: var(--bg-2);
+}
+.wt-diag-verdict.good {
+  border-left-color: var(--res-win);
+  color: #d2ffe9;
+}
+.wt-diag-verdict.bad {
+  border-left-color: var(--res-loss);
+  color: #ffd9e0;
+}
+.wt-diag-verdict b {
+  font-family: var(--font-num);
+}
+.wt-stack {
+  display: flex;
+  height: 16px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bg-3);
+  margin: 6px 0;
+}
+.wt-stack-seg {
+  height: 100%;
+}
+.wt-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 46px;
+  margin: 8px 0 2px;
+}
+.wt-spark-bar {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 2px 2px 0 0;
+  align-self: flex-end;
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   * {

@@ -29,6 +29,8 @@ import { KpiTiles } from "./components/KpiTiles";
 import { Panel } from "./components/Panel";
 import { DiagnosticList } from "./components/DiagnosticList";
 import { MatchJournal } from "./components/MatchJournal";
+import { ReplayJournal } from "./components/ReplayJournal";
+import { ExpertDiagnostics } from "./components/ExpertDiagnostics";
 import { EmptyState } from "./components/EmptyState";
 import { PwaInstall } from "./components/PwaInstall";
 import { WinRateBars } from "./viz/WinRateBars";
@@ -49,6 +51,8 @@ const ANCHORS = [
   { id: "finishers", label: "Finishers" },
   { id: "tendance", label: "Tendance" },
   { id: "diagnostic", label: "Diagnostic" },
+  { id: "expert", label: "Analyse experte" },
+  { id: "replay", label: "Replay" },
 ];
 
 function avgTrajOpp(ms: MatchRecord[]): number[] {
@@ -202,6 +206,14 @@ export function App() {
 
           <Panel id="diagnostic" title="DIAGNOSTIC" sub="en clair">
             <DiagnosticList diagnostics={agg.diagnostics} />
+          </Panel>
+
+          <Panel id="expert" title="ANALYSE EXPERTE" sub="déroulé tour par tour (v:2)">
+            <ExpertDiagnostics matches={filtered} />
+          </Panel>
+
+          <Panel id="replay" title="REPLAY" sub="rejoue une partie, coup par coup">
+            <ReplayJournal matches={filtered} />
           </Panel>
 
           <Panel title="JOURNAL" sub="parties brutes">
