@@ -1,16 +1,17 @@
 # RPSLSWatcher — config Cloudflare. Le SITE se déploie via Pages (Git-connecté à
 # la branche `main`). Les Pages Functions de functions/ se déploient AVEC.
-name = "rpsls-watcher"
+name = "rpslswatcher"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "dist"
 
-# ⚠️ Le binding D1 N'EST PAS déclaré ici exprès : si on met un database_id dans ce
-# fichier, Cloudflare le valide au déploiement (un placeholder → « Invalid database
-# UUID », échec de publication de la Function). On le configure donc dans le
-# DASHBOARD : Pages → Settings → Functions → D1 database bindings → variable `DB`
-# → database `rpsls-watcher`. Cloudflare injecte alors `env.DB` au runtime.
-#
-# Le secret d'ingest pareil : Pages → Settings → Environment variables → `INGEST_KEY`.
-#
-# DEV LOCAL (optionnel) : `wrangler pages dev dist --d1 DB=<id-local>` (crée une D1
-# locale), et `.dev.vars` pour INGEST_KEY. Rien de tout ça n'est requis pour la prod.
+# Binding D1 (vrai UUID → validé au déploiement, injecte env.DB au runtime).
+# Base créée par `wrangler d1 create rpsls-watcher`. ⚠️ Ne JAMAIS remettre un
+# placeholder ici (échec « Invalid database UUID »).
+[[d1_databases]]
+binding = "DB"
+database_name = "rpsls-watcher"
+database_id = "ca105681-0333-4c4f-a0e5-bb4057b14dca"
+
+# Le secret d'ingest INGEST_KEY se pose à part (jamais dans ce fichier) :
+# `wrangler pages secret put INGEST_KEY --project-name=rpslswatcher` ou dashboard.
+# DEV LOCAL : `wrangler pages dev dist --d1 DB=<id-local>` + `.dev.vars`.
