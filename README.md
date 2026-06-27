@@ -62,6 +62,13 @@ Côté Constellation Pro, à la fin de chaque partie Arena : construire un
 `X-Ingest-Key`. Fire-and-forget, fail-soft (ne jamais bloquer le jeu).
 *(Cette partie touche le jeu et sera câblée + testée sur device séparément.)*
 
+**Durcissement à prévoir au moment du câblage** (la clé d'ingest voyagera dans le
+client de jeu → la traiter comme semi-publique) :
+- Ajouter une **Cloudflare Rate Limiting rule** sur `POST /api/matches` (par IP).
+- Idéalement **dériver `id` côté serveur** (hash des champs de la partie) au lieu
+  de faire confiance au `id` client → les rejeux d'une même partie fusionnent.
+- Optionnel : job de **rétention** (purge des parties > N jours) pour borner la table.
+
 ## 🧪 Dev local
 
 ```bash

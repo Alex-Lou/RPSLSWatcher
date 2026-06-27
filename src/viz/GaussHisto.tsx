@@ -55,7 +55,17 @@ export function GaussHisto({
     }
     const lo = Math.min(...samples);
     const hi = Math.max(...samples);
-    const span = hi - lo || 1;
+    if (hi === lo) {
+      // valeur constante → pas d'histogramme/cloche trompeur, on l'annonce.
+      dataText(ctx, `valeur constante : ${fmt(lo)}${unit} (σ=0)`, (x0 + x1) / 2, (y0 + y1) / 2, {
+        align: "center",
+        size: 13,
+        color: cssVar("--ink-dim"),
+        font: '"Rajdhani", sans-serif',
+      });
+      return;
+    }
+    const span = hi - lo;
     const binCount = Math.max(1, bins ?? Math.min(14, Math.max(6, Math.round(Math.sqrt(n)))));
     const bw = span / binCount;
     const counts = new Array(binCount).fill(0);

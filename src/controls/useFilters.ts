@@ -12,7 +12,18 @@ export type Period = "all" | "24h" | "7d" | "30d";
 function load(): Filters {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...EMPTY_FILTERS, ...JSON.parse(raw) };
+    if (raw) {
+      const p = JSON.parse(raw) as Partial<Filters>;
+      // garde de forme : un localStorage corrompu ne doit pas casser applyFilters.
+      return {
+        voies: Array.isArray(p.voies) ? p.voies : [],
+        results: Array.isArray(p.results) ? p.results : [],
+        oppKinds: Array.isArray(p.oppKinds) ? p.oppKinds : [],
+        modes: Array.isArray(p.modes) ? p.modes : [],
+        since: typeof p.since === "number" ? p.since : null,
+        until: typeof p.until === "number" ? p.until : null,
+      };
+    }
   } catch {
     /* ignore */
   }
@@ -45,7 +56,9 @@ export function useFilters(nowMs: number) {
       toggleResult: (r: Result) => persist({ ...filters, results: toggle(filters.results, r) }),
       toggleOppKind: (k: OppKind) => persist({ ...filters, oppKinds: toggle(filters.oppKinds, k) }),
       toggleMode: (m: Mode) => persist({ ...filters, modes: toggle(filters.modes, m) }),
-      setPeriod: (p: Period) => persist({ ...filters, since: PERIOD_MS[p] == null ? null : nowMs - (PERIOD_MS[p] as number), until: null }),
+      // fenêtre calculée à l'instant du clic (Date.now()) → un préset « 24h »
+      // pointe toujours sur les 24 vraies dernières heures, même session longue.
+      setPeriod: (p: Period) => persist({ ...filters, since: PERIOD_MS[p] == null ? null : Date.now() - (PERIOD_MS[p] as number), until: null }),
       reset: () => persist({ ...EMPTY_FILTERS }),
       isDefault:
         filters.voies.length === 0 &&

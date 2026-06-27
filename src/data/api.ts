@@ -36,7 +36,16 @@ function readCache(): { records: MatchRecord[]; syncedAt: number } | null {
 
 export async function loadMatches(): Promise<DataSource> {
   try {
-    const res = await fetch("/api/matches?limit=5000", { headers: { accept: "application/json" } });
+    // timeout : un backend qui pend (cold start, socket suspendue) ne doit JAMAIS
+    // bloquer l'app sur « Chargement… » → abort à 6s → chute vers cache puis démo.
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 6000);
+    let res: Response;
+    try {
+      res = await fetch("/api/matches?limit=5000", { headers: { accept: "application/json" }, signal: ctl.signal });
+    } finally {
+      clearTimeout(t);
+    }
     if (res.ok) {
       const body = (await res.json()) as { matches?: unknown };
       const arr = Array.isArray(body?.matches) ? (body.matches as unknown[]).filter(looksLikeRecord) : [];

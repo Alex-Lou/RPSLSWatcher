@@ -98,7 +98,7 @@ export function buildDiagnostics(matches: MatchRecord[]): Diagnostic[] {
   // Finisher décisif ?
   const fin = finisherStats(matches);
   if (n >= 30 && fin.lift > 0.2) {
-    out.push({ severity: "ok", text: `Quand ton finisher part, tu gagnes ${pct(fin.lift)} plus souvent — il pèse vraiment (corrélation).` });
+    out.push({ severity: "ok", text: `Tes parties avec finisher sont gagnées ${pct(fin.lift)} plus souvent — mais le finisher = engine maxé = souvent des parties déjà longues/contrôlées (corrélation, pas forcément la cause).` });
   }
 
   if (out.length === 0) out.push({ severity: "ok", text: "Rien d'alarmant : profil équilibré sur ce filtre." });

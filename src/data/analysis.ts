@@ -36,6 +36,12 @@ export function applyFilters(matches: MatchRecord[], f: Filters): MatchRecord[] 
 
 const isWin = (r: Result) => r === "win";
 
+/** Tri chronologique DÉTERMINISTE (ts puis id) — partagé par kpis et streaks pour
+ *  qu'ils désignent EXACTEMENT la même « dernière partie » sur des ts égaux. */
+function sortChrono(ms: MatchRecord[]): MatchRecord[] {
+  return [...ms].sort((a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
 export function kpis(matches: MatchRecord[]): Kpis {
   const games = matches.length;
   if (games === 0) {
@@ -44,14 +50,11 @@ export function kpis(matches: MatchRecord[]): Kpis {
   const wins = matches.filter((m) => isWin(m.result)).length;
   const aggs = voieAggs(matches).filter((a) => a.games >= 3);
   const sorted = [...aggs].sort((a, b) => b.winRate - a.winRate);
-  // streak : depuis la partie la plus récente (ts desc).
-  const byRecent = [...matches].sort((a, b) => b.ts - a.ts);
-  const streakKind = byRecent[0].result;
+  // streak : depuis la partie la plus récente (tri chronologique partagé).
+  const chrono = sortChrono(matches);
+  const streakKind = chrono[chrono.length - 1].result;
   let len = 0;
-  for (const m of byRecent) {
-    if (m.result === streakKind) len++;
-    else break;
-  }
+  for (let i = chrono.length - 1; i >= 0 && chrono[i].result === streakKind; i--) len++;
   return {
     games,
     winRate: wins / games,
@@ -166,8 +169,8 @@ export function avgHpTrajectory(matches: MatchRecord[], voie?: Move): number[] {
 
 export interface RpslsDelta {
   voie: Move;
-  real: number; // win-rate réel (oppVoie connue)
-  expected: number; // win-rate « pur RPSLS » attendu vu les adversaires rencontrés
+  real: number; // taux de SCORE réel (win=1, draw=0.5, loss=0) — même échelle qu'expected
+  expected: number; // taux de score « pur RPSLS » attendu vu les adversaires rencontrés
   delta: number; // real − expected (>0 = la Voie sur-performe sa position RPSLS)
   n: number;
 }
@@ -179,11 +182,16 @@ function rpslsSign(att: Move, def: Move): number {
   return 0;
 }
 
+/** Taux de score (win=1, draw=0.5, loss=0) — aligné sur l'échelle de rpslsSign. */
+function scoreRate(ms: MatchRecord[]): number {
+  return mean(ms.map((m) => (m.result === "win" ? 1 : m.result === "draw" ? 0.5 : 0)));
+}
+
 export function rpslsDeltas(matches: MatchRecord[]): RpslsDelta[] {
   return MOVES.map((voie) => {
     const ms = matches.filter((m) => m.playerVoie === voie && m.oppVoie);
     const n = ms.length;
-    const real = n ? ms.filter((m) => isWin(m.result)).length / n : 0;
+    const real = n ? scoreRate(ms) : 0;
     const expected = n ? mean(ms.map((m) => rpslsSign(voie, m.oppVoie as Move))) : 0.5;
     return { voie, real, expected, delta: real - expected, n };
   });
@@ -280,7 +288,7 @@ export interface Streaks {
 }
 
 export function streaks(matches: MatchRecord[]): Streaks {
-  const ms = [...matches].sort((a, b) => a.ts - b.ts);
+  const ms = sortChrono(matches);
   let bestWin = 0;
   let worstLoss = 0;
   let runW = 0;

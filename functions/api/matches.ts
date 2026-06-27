@@ -196,6 +196,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const matches = (res.results ?? []).map(rowToRecord);
     return json({ ok: true, count: matches.length, matches });
   } catch (e) {
-    return json({ ok: false, error: "db", detail: String(e) }, 500);
+    // ne pas renvoyer le message D1 brut au public (hygiène) — log côté serveur.
+    console.error("GET /api/matches", e);
+    return json({ ok: false, error: "db" }, 500);
   }
 };
