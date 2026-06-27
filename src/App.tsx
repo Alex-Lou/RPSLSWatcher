@@ -31,6 +31,7 @@ import { DiagnosticList } from "./components/DiagnosticList";
 import { MatchJournal } from "./components/MatchJournal";
 import { ReplayJournal } from "./components/ReplayJournal";
 import { ExpertDiagnostics } from "./components/ExpertDiagnostics";
+import { CardStats } from "./components/CardStats";
 import { EmptyState } from "./components/EmptyState";
 import { PwaInstall } from "./components/PwaInstall";
 import { WinRateBars } from "./viz/WinRateBars";
@@ -52,6 +53,7 @@ const ANCHORS = [
   { id: "tendance", label: "Tendance" },
   { id: "diagnostic", label: "Diagnostic" },
   { id: "expert", label: "Analyse experte" },
+  { id: "cartes", label: "Cartes" },
   { id: "replay", label: "Replay" },
 ];
 
@@ -210,6 +212,10 @@ export function App() {
 
           <Panel id="expert" title="ANALYSE EXPERTE" sub="déroulé tour par tour (v:2)">
             <ExpertDiagnostics matches={filtered} />
+          </Panel>
+
+          <Panel id="cartes" title="CARTES" sub="ce que tu joues vraiment (créatures · sorts · fusions)">
+            <CardStats matches={filtered} />
           </Panel>
 
           <Panel id="replay" title="REPLAY" sub="rejoue une partie, coup par coup">

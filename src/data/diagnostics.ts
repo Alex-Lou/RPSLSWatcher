@@ -227,6 +227,68 @@ export function finisherTiming(matches: MatchRecord[]): FinisherTiming {
   };
 }
 
+/* ───────────────────────────── Stats par carte ─────────────────────────── */
+
+export interface CardStat {
+  id: string;
+  name: string;
+  kind: string;
+  rarity: string;
+  fusion: boolean;
+  voie?: Move;
+  timesPlayed: number; // occurrences totales (toutes parties)
+  gamesSeen: number; // parties distinctes où jouée ≥1 fois
+  winRateWhenPlayed: number; // sur gamesSeen, fraction gagnée
+  avgTurn: number; // tour moyen de jeu
+}
+
+/** Agrège les cartes RÉELLEMENT jouées par MOI (turnLog.cards) sur les parties
+ *  filtrées (v:2). Trié par fréquence. winRate = corrélation (pas causalité). */
+export function cardStats(matches: MatchRecord[]): CardStat[] {
+  const ms = withTurnLog(matches);
+  const acc = new Map<
+    string,
+    { name: string; kind: string; rarity: string; fusion: boolean; voie?: Move; plays: number; turnSum: number; games: Set<number>; wins: number }
+  >();
+  ms.forEach((m, i) => {
+    const won = m.result === "win";
+    const seenThisGame = new Set<string>();
+    for (const t of m.turnLog)
+      for (const c of t.cards ?? []) {
+        let e = acc.get(c.id);
+        if (!e) {
+          e = { name: c.name || c.id, kind: c.kind, rarity: c.rarity, fusion: c.fusion, voie: c.voie, plays: 0, turnSum: 0, games: new Set(), wins: 0 };
+          acc.set(c.id, e);
+        }
+        e.plays++;
+        e.turnSum += t.turn;
+        if (c.name) e.name = c.name;
+        e.games.add(i);
+        if (!seenThisGame.has(c.id)) {
+          seenThisGame.add(c.id);
+          if (won) e.wins++;
+        }
+      }
+  });
+  const out: CardStat[] = [];
+  for (const [id, e] of acc) {
+    const gamesSeen = e.games.size;
+    out.push({
+      id,
+      name: e.name,
+      kind: e.kind,
+      rarity: e.rarity,
+      fusion: e.fusion,
+      voie: e.voie,
+      timesPlayed: e.plays,
+      gamesSeen,
+      winRateWhenPlayed: gamesSeen ? e.wins / gamesSeen : 0,
+      avgTurn: e.plays ? e.turnSum / e.plays : 0,
+    });
+  }
+  return out.sort((a, b) => b.timesPlayed - a.timesPlayed);
+}
+
 /* ──────────────────────── Confiance statistique (Wilson) ────────────────── */
 
 /** Intervalle de Wilson (95% par défaut) pour un win-rate — garde le bruit. */

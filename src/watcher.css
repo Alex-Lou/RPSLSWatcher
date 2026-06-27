@@ -823,6 +823,33 @@ body::after {
   align-self: flex-end;
 }
 
+/* ═══════════════ Tracker de cartes ═══════════════ */
+.wt-cards-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.wt-cards-table td.weak {
+  color: var(--ink-dim);
+}
+.wt-fuse-badge {
+  font-family: var(--font-num);
+  font-size: 9.5px;
+  letter-spacing: 0.5px;
+  color: var(--neon-amber);
+  border: 1px solid color-mix(in oklab, var(--neon-amber) 45%, transparent);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.wt-voie-dot {
+  margin-left: 6px;
+  font-size: 10px;
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   * {

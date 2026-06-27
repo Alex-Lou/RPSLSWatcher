@@ -102,6 +102,36 @@ function cleanLane(x: unknown): Record<string, unknown> | null {
   };
 }
 
+function cleanCard(x: unknown): Record<string, unknown> | null {
+  if (!x || typeof x !== "object") return null;
+  const r = x as Record<string, unknown>;
+  const id = typeof r.id === "string" && r.id.length > 0 && r.id.length <= 60 ? r.id : null;
+  if (id === null) return null;
+  const voie = r.voie == null ? null : enumOf(r.voie, MOVES);
+  if (r.voie != null && voie === null) return null;
+  const out: Record<string, unknown> = {
+    id,
+    name: typeof r.name === "string" ? r.name.slice(0, 80) : "",
+    kind: typeof r.kind === "string" ? r.kind.slice(0, 24) : "active",
+    rarity: typeof r.rarity === "string" ? r.rarity.slice(0, 24) : "common",
+    fusion: !!r.fusion,
+  };
+  if (voie !== null) out.voie = voie;
+  return out;
+}
+
+function cleanCardList(x: unknown): Record<string, unknown>[] | null | "drop" {
+  if (x == null) return null; // absent → pas de cards
+  if (!Array.isArray(x) || x.length > MAX_PLAYS) return "drop";
+  const out: Record<string, unknown>[] = [];
+  for (const c of x) {
+    const cc = cleanCard(c);
+    if (!cc) return "drop";
+    out.push(cc);
+  }
+  return out;
+}
+
 function cleanTurnLog(x: unknown): string | null {
   if (x == null) return null;
   if (!Array.isArray(x) || x.length === 0 || x.length > MAX_TURNS_LOG) return null;
@@ -135,10 +165,16 @@ function cleanTurnLog(x: unknown): string | null {
     for (const p of r.plays) { const c = cleanPlay(p); if (!c) return null; plays.push(c); }
     const playsOpp: Record<string, unknown>[] = [];
     for (const p of r.playsOpp) { const c = cleanPlay(p); if (!c) return null; playsOpp.push(c); }
+    const cards = cleanCardList(r.cards);
+    if (cards === "drop") return null;
+    const cardsOpp = cleanCardList(r.cardsOpp);
+    if (cardsOpp === "drop") return null;
     const ev2: Record<string, unknown> = {
       turn, manaMax, manaSpent, handStart, drawn, deckLeft, plays, playsOpp,
       engine, engineOpp, engineRose: !!r.engineRose, finisherUnlocked: !!r.finisherUnlocked,
       hpSelf, hpOpp, dHpSelf, dHpOpp, deadTurn: !!r.deadTurn,
+      ...(cards ? { cards } : {}),
+      ...(cardsOpp ? { cardsOpp } : {}),
     };
     if (r.lanes != null) {
       if (!Array.isArray(r.lanes) || r.lanes.length > MAX_LANES) return null;

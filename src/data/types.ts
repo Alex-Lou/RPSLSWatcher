@@ -110,6 +110,17 @@ export interface TurnPlay {
   manaCost: number;
 }
 
+/** Carte RÉELLE dépensée ce tour — alimente le tracker de cartes (stats par
+ *  carte, base vs fusion). id = clé de regroupement, name = libellé lisible. */
+export interface CardPlay {
+  id: string;
+  name: string;
+  kind: string; // creature | spell | fusion | active | passive…
+  rarity: string;
+  fusion: boolean;
+  voie?: Move;
+}
+
 /** Un tour résolu, du point de vue du joueur (« moi » = a, « adv » = b). */
 export interface ArenaTurnEvent {
   turn: number;
@@ -122,6 +133,8 @@ export interface ArenaTurnEvent {
   // — coups posés —
   plays: TurnPlay[]; // moi
   playsOpp: TurnPlay[]; // adversaire (révélés)
+  cards?: CardPlay[]; // vraies cartes dépensées (moi) — id/nom/rareté/fusion
+  cardsOpp?: CardPlay[];
   // — moteur de Voie / affinité —
   engine: number; // valeur de ma jauge de Voie après le tour
   engineOpp: number;

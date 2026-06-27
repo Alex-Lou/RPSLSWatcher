@@ -8,6 +8,7 @@ import {
   MOVES,
   RPSLS_BEATS,
   type ArenaTurnEvent,
+  type CardPlay,
   type EndReason,
   type LaneOutcome,
   type LaneResult,
@@ -17,6 +18,19 @@ import {
   type Result,
   type TurnPlay,
 } from "./types";
+
+// Pools de cartes DÉMO (noms stables → ids stables → agrègent entre parties).
+const CREATURE_NAME: Record<Move, string> = {
+  rock: "Golem de Pierre",
+  paper: "Sylphe des Bois",
+  scissors: "Lame Vive",
+  lizard: "Caméléon Spectral",
+  spock: "Sage Cosmique",
+};
+const SPELL_NAMES = ["Second Souffle", "Aegis", "Surcharge", "Marée", "Larcin", "Oracle", "Supernova", "Genèse"];
+const FUSION_NAMES = ["Forteresse", "Verger Éternel", "Lame Cosmique", "Métamorphose"];
+const RARITIES = ["common", "common", "common", "rare", "rare", "epic", "legendary"];
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -130,6 +144,19 @@ function mockTurnLog(
       lanes.push({ lane: 0, selfMove: myMove, oppMove, result, killSelf, killOpp, saved: false, splashToOpp, splashToSelf: 0, directToOpp, directToSelf: 0 });
     }
 
+    const toCards = (ps: TurnPlay[]): CardPlay[] =>
+      ps.map((p) => {
+        if (p.kind === "summon" && p.move) {
+          return { id: `cr-${p.move}`, name: CREATURE_NAME[p.move], kind: "creature", rarity: pick(rng, RARITIES), fusion: false, voie: p.move };
+        }
+        if (rng() < 0.15) {
+          const name = pick(rng, FUSION_NAMES);
+          return { id: slug(name), name, kind: "fusion", rarity: "legendary", fusion: true };
+        }
+        const name = pick(rng, SPELL_NAMES);
+        return { id: slug(name), name, kind: "spell", rarity: pick(rng, RARITIES), fusion: false };
+      });
+
     deck = Math.max(0, deck - nSummon - 1);
     log.push({
       turn: t,
@@ -149,6 +176,8 @@ function mockTurnLog(
       dHpSelf,
       dHpOpp,
       deadTurn: dHpSelf === 0 && dHpOpp === 0 && !rose,
+      cards: toCards(plays),
+      cardsOpp: toCards(playsOpp),
       lanes,
     });
   }
