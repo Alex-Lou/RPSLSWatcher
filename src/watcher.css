@@ -1,0 +1,520 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   RPSLS WATCHER — peau cyberpunk (étend balance.css du jeu). Near-black + néons.
+   RÈGLE D'OR : glow sur CONTOURS / barres / courbes / titres — JAMAIS sur un
+   chiffre lu (les valeurs restent nettes, Share Tech Mono, shadow:none).
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --bg-0: #05070d;
+  --bg-1: #0a0e18;
+  --bg-2: #111726;
+  --bg-3: #161d2e;
+  --grid: #18324a;
+  --stroke-faint: #1d2a3e;
+  --ink: #cfe7ff;
+  --ink-bright: #eaf4ff;
+  --ink-dim: #6c8299;
+
+  --neon-cyan: #2af5ff;
+  --neon-magenta: #ff3df0;
+  --neon-lime: #8dff3a;
+  --neon-amber: #ffb627;
+  --neon-violet: #b66bff;
+
+  --voie-rock: var(--neon-amber);
+  --voie-paper: var(--neon-lime);
+  --voie-scissors: var(--neon-magenta);
+  --voie-lizard: var(--neon-violet);
+  --voie-spock: var(--neon-cyan);
+
+  /* triade RÉSULTAT (distincte des Voies pour éviter les collisions) */
+  --res-win: #28ffa6;
+  --res-loss: #ff4d6d;
+  --res-draw: #6c8299;
+
+  --bell-bar: #243247;
+  --bell-mean: var(--neon-amber);
+
+  /* tiers de glow (lus en JS via cssVarNum → shadowBlur ; PAS des unités CSS) */
+  --glow-sm: 6;
+  --glow-md: 12;
+  --glow-lg: 18;
+
+  --font-display: "Orbitron", sans-serif;
+  --font-ui: "Rajdhani", sans-serif;
+  --font-num: "Share Tech Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+}
+/* grille + scanlines statiques (perf), sous le contenu */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 34px 34px;
+  opacity: 0.1;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(transparent 0 2px, rgba(0, 0, 0, 0.22) 2px 3px);
+  opacity: 0.3;
+}
+
+.wt-app {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 14px calc(48px + env(safe-area-inset-bottom));
+}
+
+/* ── Header (sticky) ── */
+.wt-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px 10px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: linear-gradient(var(--bg-0) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+.wt-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 3px;
+  margin: 0;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px color-mix(in oklab, var(--neon-cyan) 65%, transparent);
+}
+.wt-pill {
+  font-family: var(--font-num);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.wt-pill.live {
+  color: var(--res-win);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--res-win) 45%, transparent);
+}
+.wt-pill.demo {
+  color: var(--neon-amber);
+}
+.wt-pill.offline {
+  color: var(--ink-dim);
+}
+
+/* ── Filter bar (sticky) ── */
+.wt-filterbar {
+  position: sticky;
+  top: 52px;
+  z-index: 18;
+  background: color-mix(in oklab, var(--bg-1) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--stroke-faint);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 4px 0 12px;
+}
+.wt-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.wt-filter-row + .wt-filter-row {
+  margin-top: 8px;
+}
+.wt-filter-tag {
+  font-family: var(--font-num);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+.wt-count {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-size: 12px;
+  color: var(--ink-bright);
+}
+.wt-count.weak {
+  color: var(--neon-amber);
+}
+.wt-reset {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--stroke-faint);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.wt-reset:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+/* ── Filter chip ── */
+.wt-chip {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke-faint);
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, box-shadow 0.12s;
+  white-space: nowrap;
+}
+.wt-chip.on {
+  color: var(--bg-0);
+  background: var(--chip-accent, var(--neon-cyan));
+  border-color: var(--chip-accent, var(--neon-cyan));
+  box-shadow: 0 0 10px color-mix(in oklab, var(--chip-accent, var(--neon-cyan)) 40%, transparent);
+}
+.wt-chip.on-outline {
+  color: var(--chip-accent, var(--ink));
+  border-color: var(--chip-accent, var(--ink));
+}
+
+/* ── Anchor chips ── */
+.wt-anchors {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 10px;
+  scrollbar-width: none;
+}
+.wt-anchors::-webkit-scrollbar {
+  display: none;
+}
+.wt-anchor {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-decoration: none;
+  color: var(--ink-dim);
+  border: 1px solid var(--stroke-faint);
+  border-radius: 999px;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+.wt-anchor:hover {
+  color: var(--ink);
+}
+
+/* ── Verdict strip ── */
+.wt-verdict {
+  border-left: 3px solid var(--neon-cyan);
+  background: color-mix(in oklab, var(--neon-cyan) 7%, var(--bg-1));
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-bright);
+}
+
+/* ── KPI tiles ── */
+.wt-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.wt-kpi {
+  position: relative;
+  background: var(--bg-1);
+  border: 1px solid var(--stroke-faint);
+  border-left: 3px solid var(--kpi-accent, var(--neon-cyan));
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: inset 0 0 16px rgba(42, 245, 255, 0.03);
+}
+.wt-kpi-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.wt-kpi-value {
+  font-family: var(--font-num);
+  font-size: 26px;
+  line-height: 1.1;
+  margin-top: 4px;
+  color: var(--ink-bright);
+}
+.wt-kpi-sub {
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin-top: 2px;
+}
+.wt-kpi-delta.up {
+  color: var(--res-win);
+}
+.wt-kpi-delta.down {
+  color: var(--res-loss);
+}
+
+/* ── Panels (réutilise l'esprit .lab-panel) ── */
+.wt-section {
+  scroll-margin-top: 104px;
+}
+.lab-panel {
+  background: var(--bg-1);
+  border: 1px solid color-mix(in oklab, var(--neon-cyan) 16%, transparent);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: inset 0 0 22px rgba(42, 245, 255, 0.03);
+}
+.lab-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in oklab, var(--neon-cyan) 14%, transparent);
+  background: color-mix(in oklab, var(--neon-cyan) 5%, transparent);
+}
+.lab-panel-sub {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--ink-dim);
+}
+.lab-panel-body {
+  padding: 12px 14px;
+}
+.lab-canvas-wrap {
+  width: 100%;
+}
+.lab-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+}
+.lab-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+/* ── Toggles within a panel (mini segmented) ── */
+.wt-toggle {
+  display: inline-flex;
+  border: 1px solid var(--stroke-faint);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.wt-toggle button {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 1px;
+  background: transparent;
+  color: var(--ink-dim);
+  border: 0;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.wt-toggle button.on {
+  background: color-mix(in oklab, var(--neon-cyan) 18%, transparent);
+  color: var(--neon-cyan);
+}
+
+/* ── Diagnostics (réutilise .lab-diag) ── */
+.lab-diag {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lab-diag-item {
+  font-size: 13.5px;
+  line-height: 1.45;
+  padding: 9px 12px;
+  border-left: 3px solid var(--ink-dim);
+  background: var(--bg-2);
+  border-radius: 0 5px 5px 0;
+  display: flex;
+  gap: 8px;
+}
+.lab-diag-item.sev-high {
+  border-left-color: var(--res-loss);
+  color: #ffd9e0;
+}
+.lab-diag-item.sev-warn {
+  border-left-color: var(--neon-amber);
+  color: #ffe9c2;
+}
+.lab-diag-item.sev-ok {
+  border-left-color: var(--res-win);
+  color: #d2ffe9;
+}
+.lab-diag-icon {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+/* ── Sample badge ── */
+.wt-weak {
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  color: var(--neon-amber);
+  border: 1px solid color-mix(in oklab, var(--neon-amber) 40%, transparent);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+/* ── Match journal ── */
+.wt-journal summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  padding: 10px 14px;
+}
+.wt-journal summary::-webkit-details-marker {
+  display: none;
+}
+.wt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-num);
+  font-size: 12px;
+}
+.wt-table th,
+.wt-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--stroke-faint);
+  white-space: nowrap;
+}
+.wt-table th {
+  color: var(--ink-dim);
+  font-weight: 400;
+  letter-spacing: 1px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+.wt-table td.win {
+  color: var(--res-win);
+}
+.wt-table td.loss {
+  color: var(--res-loss);
+}
+.wt-table td.draw {
+  color: var(--res-draw);
+}
+.wt-table-wrap {
+  max-height: 360px;
+  overflow: auto;
+}
+
+/* ── Empty / footer / install ── */
+.wt-empty {
+  text-align: center;
+  color: var(--ink-dim);
+  padding: 28px 16px;
+  font-size: 14px;
+}
+.wt-empty button,
+.wt-install button {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: var(--neon-cyan);
+  background: color-mix(in oklab, var(--neon-cyan) 14%, var(--bg-2));
+  border: 1px solid var(--neon-cyan);
+  border-radius: 6px;
+  padding: 8px 18px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+.wt-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--stroke-faint);
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+/* ── Responsive ── */
+@media (min-width: 720px) {
+  .wt-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .wt-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .wt-grid-2 .lab-panel {
+    margin-bottom: 0;
+  }
+}
+@media (min-width: 720px) {
+  .wt-title {
+    font-size: 24px;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
