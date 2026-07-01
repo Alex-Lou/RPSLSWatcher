@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS matches (
   end_reason         TEXT NOT NULL,            -- ko | hardcap | suddendeath
   app_version        TEXT,
   turn_log           TEXT,                     -- [v:2] JSON array ArenaTurnEvent, nullable
+  fps                TEXT,                     -- JSON FpsSummary (profil FPS), nullable
   created_at         INTEGER NOT NULL          -- epoch ms (quand ingéré)
 );
 

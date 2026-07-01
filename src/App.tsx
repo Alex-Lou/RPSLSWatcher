@@ -32,6 +32,7 @@ import { MatchJournal } from "./components/MatchJournal";
 import { ReplayJournal } from "./components/ReplayJournal";
 import { ExpertDiagnostics } from "./components/ExpertDiagnostics";
 import { CardStats } from "./components/CardStats";
+import { FpsPanel } from "./components/FpsPanel";
 import { EmptyState } from "./components/EmptyState";
 import { PwaInstall } from "./components/PwaInstall";
 import { WinRateBars } from "./viz/WinRateBars";
@@ -54,6 +55,7 @@ const ANCHORS = [
   { id: "diagnostic", label: "Diagnostic" },
   { id: "expert", label: "Analyse experte" },
   { id: "cartes", label: "Cartes" },
+  { id: "perf", label: "Perf (FPS)" },
   { id: "replay", label: "Replay" },
 ];
 
@@ -216,6 +218,10 @@ export function App() {
 
           <Panel id="cartes" title="CARTES" sub="ce que tu joues vraiment (créatures · sorts · fusions)">
             <CardStats matches={filtered} />
+          </Panel>
+
+          <Panel id="perf" title="PERF (FPS)" sub="framerate par partie & appareil — piloter la perf">
+            <FpsPanel matches={filtered} />
           </Panel>
 
           <Panel id="replay" title="REPLAY" sub="rejoue une partie, coup par coup">

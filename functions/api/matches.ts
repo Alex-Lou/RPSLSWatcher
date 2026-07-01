@@ -187,6 +187,27 @@ function cleanTurnLog(x: unknown): string | null {
   return JSON.stringify(out);
 }
 
+/* ── Profil FPS (JSON FpsSummary) — validation stricte + clamp. Une valeur
+ *    malformée → fps null (la partie reste enregistrée sans profil FPS). ── */
+function cleanFps(x: unknown): string | null {
+  if (x == null || typeof x !== "object") return null;
+  const r = x as Record<string, unknown>;
+  const f = (v: unknown, lo: number, hi: number): number | null =>
+    typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : null;
+  const avg = f(r.avg, 0, 240), min = f(r.min, 0, 240), low = f(r.low, 0, 240);
+  const jankPct = f(r.jankPct, 0, 100), longFrames = f(r.longFrames, 0, 9_999_999);
+  const frames = f(r.frames, 0, 99_999_999), durMs = f(r.durMs, 0, 86_400_000), dpr = f(r.dpr, 0, 16);
+  if (avg === null || min === null || low === null || jankPct === null ||
+      longFrames === null || frames === null || durMs === null || dpr === null) return null;
+  const out: Record<string, unknown> = {
+    avg: Math.round(avg * 10) / 10, min: Math.round(min * 10) / 10, low: Math.round(low * 10) / 10,
+    jankPct: Math.round(jankPct * 10) / 10, longFrames: Math.round(longFrames),
+    frames: Math.round(frames), durMs: Math.round(durMs), dpr: Math.round(dpr * 100) / 100,
+  };
+  if (typeof r.device === "string" && r.device.length > 0) out.device = r.device.slice(0, 40);
+  return JSON.stringify(out);
+}
+
 interface CleanRecord {
   id: string;
   ts: number;
@@ -205,6 +226,7 @@ interface CleanRecord {
   endReason: string;
   appVersion: string | null;
   turnLog: string | null;
+  fps: string | null;
 }
 
 function clean(r: Record<string, unknown>): CleanRecord | null {
@@ -223,6 +245,7 @@ function clean(r: Record<string, unknown>): CleanRecord | null {
   const hpSelf = trajOf(r.hpTrajectorySelf);
   const hpOpp = trajOf(r.hpTrajectoryOpp);
   const turnLog = cleanTurnLog(r.turnLog); // null si absent OU malformé (la partie reste en v:1)
+  const fps = cleanFps(r.fps); // null si absent OU malformé (la partie reste enregistrée)
   if (
     id === null || ts === null || mode === null || playerVoie === null || oppKind === null ||
     result === null || turns === null || finalHpSelf === null || finalHpOpp === null ||
@@ -239,6 +262,7 @@ function clean(r: Record<string, unknown>): CleanRecord | null {
     endReason,
     appVersion: typeof r.appVersion === "string" ? r.appVersion.slice(0, 24) : null,
     turnLog,
+    fps,
   };
 }
 
@@ -263,8 +287,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     `INSERT OR IGNORE INTO matches
       (id, ts, mode, player_voie, opp_voie, opp_kind, result, turns,
        final_hp_self, final_hp_opp, finisher_fired, opp_finisher_fired,
-       hp_self, hp_opp, end_reason, app_version, turn_log, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       hp_self, hp_opp, end_reason, app_version, turn_log, fps, created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   );
   const createdAt = Date.now();
   const batch: D1PreparedStatement[] = [];
@@ -279,7 +303,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       stmt.bind(
         c.id, c.ts, c.mode, c.playerVoie, c.oppVoie, c.oppKind, c.result, c.turns,
         c.finalHpSelf, c.finalHpOpp, c.finisherFired, c.oppFinisherFired,
-        c.hpSelf, c.hpOpp, c.endReason, c.appVersion, c.turnLog, createdAt,
+        c.hpSelf, c.hpOpp, c.endReason, c.appVersion, c.turnLog, c.fps, createdAt,
       ),
     );
   }
@@ -294,7 +318,7 @@ interface Row {
   id: string; ts: number; mode: string; player_voie: string; opp_voie: string | null;
   opp_kind: string; result: string; turns: number; final_hp_self: number; final_hp_opp: number;
   finisher_fired: number; opp_finisher_fired: number; hp_self: string; hp_opp: string;
-  end_reason: string; app_version: string | null; turn_log: string | null;
+  end_reason: string; app_version: string | null; turn_log: string | null; fps: string | null;
 }
 
 function rowToRecord(r: Row): Record<string, unknown> {
@@ -315,7 +339,17 @@ function rowToRecord(r: Row): Record<string, unknown> {
       return null;
     }
   };
+  const parseObj = (s: string | null): Record<string, unknown> | null => {
+    if (!s) return null;
+    try {
+      const v = JSON.parse(s);
+      return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    } catch {
+      return null;
+    }
+  };
   const turnLog = parseLog(r.turn_log);
+  const fps = parseObj(r.fps);
   return {
     v: turnLog ? 2 : 1, id: r.id, ts: r.ts, mode: r.mode, playerVoie: r.player_voie, oppVoie: r.opp_voie,
     oppKind: r.opp_kind, result: r.result, turns: r.turns, finalHpSelf: r.final_hp_self,
@@ -323,6 +357,7 @@ function rowToRecord(r: Row): Record<string, unknown> {
     hpTrajectorySelf: parse(r.hp_self), hpTrajectoryOpp: parse(r.hp_opp),
     endReason: r.end_reason, appVersion: r.app_version ?? undefined,
     ...(turnLog ? { turnLog } : {}),
+    ...(fps ? { fps } : {}),
   };
 }
 
@@ -334,7 +369,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const res = await env.DB.prepare(
       `SELECT id, ts, mode, player_voie, opp_voie, opp_kind, result, turns,
               final_hp_self, final_hp_opp, finisher_fired, opp_finisher_fired,
-              hp_self, hp_opp, end_reason, app_version, turn_log
+              hp_self, hp_opp, end_reason, app_version, turn_log, fps
        FROM matches WHERE ts >= ? ORDER BY ts DESC LIMIT ?`,
     )
       .bind(since, limit)

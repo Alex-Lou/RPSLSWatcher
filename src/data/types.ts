@@ -68,6 +68,22 @@ export interface MatchRecord {
   endReason: EndReason;
   appVersion?: string; // version du jeu (cohorting), optionnel
   turnLog?: ArenaTurnEvent[]; // [v:2] déroulé tour par tour — absent sur les parties v:1
+  fps?: FpsSummary; // profil FPS de la partie (rAF) — absent si non mesuré
+}
+
+/** Profil FPS d'une partie — produit par le sampler in-game (rAF continu). MÊME
+ *  contrat que le jeu (graphics/fpsSampler.ts). Observationnel, pour piloter la
+ *  perf comme on pilote l'équilibrage. */
+export interface FpsSummary {
+  avg: number;        // FPS moyen
+  min: number;        // pire FPS instantané (= 1000 / plus longue frame)
+  low: number;        // FPS des 5% pires frames (p95 de durée) — métrique de stutter
+  jankPct: number;    // % de frames > 32ms (sous ~30 fps)
+  longFrames: number; // nb de frames > 50ms (hitch visible)
+  frames: number;     // total de frames échantillonnées
+  durMs: number;      // durée réelle d'échantillonnage
+  dpr: number;        // devicePixelRatio
+  device?: string;    // hint appareil (modèle, non-PII)
 }
 
 /* ───────────────────── Turn-log v:2 (déroulé tour par tour) ─────────────────
